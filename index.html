@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>KBB Soru Bankası</title>
+  <meta name="description" content="KBB çoktan seçmeli soru bankası: Markdown sorularını yükle, konuya veya kaynağa göre test çöz.">
+  <meta name="theme-color" content="#0e7490">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e7490'/%3E%3Cpath d='M20 44V20h6v9l9-9h8L32 31l12 13h-8l-10-10v10z' fill='white'/%3E%3C/svg%3E">
+  <script>
+    try { var t = localStorage.getItem('kbb.theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#/">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span class="brand-text">KBB Soru Bankası</span>
+      </a>
+      <nav class="nav" aria-label="Ana menü">
+        <a href="#/" data-nav="home">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          <span>Ana Sayfa</span>
+        </a>
+        <a href="#/test" data-nav="test">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+          <span>Test Çöz</span>
+        </a>
+        <a href="#/banka" data-nav="banka">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
+          <span>Soru Bankası</span>
+        </a>
+        <a href="#/yukle" data-nav="yukle">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M20 15v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4"/></svg>
+          <span>Dosya Yükle</span>
+        </a>
+        <a href="#/istatistik" data-nav="istatistik">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+          <span>İstatistikler</span>
+        </a>
+      </nav>
+      <button class="icon-btn theme-btn" id="themeBtn" type="button" title="Tema" aria-label="Tema değiştir">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" class="container" tabindex="-1">
+    <div class="loading">Yükleniyor…</div>
+  </main>
+
+  <div id="modalRoot"></div>
+  <div id="toastRoot" class="toasts" aria-live="polite"></div>
+
+  <noscript><p class="container">Bu site JavaScript gerektirir.</p></noscript>
+
+  <script src="js/markdown.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

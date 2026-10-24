@@ -1,0 +1,8 @@
+# Soru dosyaları, yedekler ve kaynak kitaplar herkese açık depoya girmesin
+*.md
+!README.md
+*.json
+*.pdf
+sorular/
+yedekler/
+.DS_Store

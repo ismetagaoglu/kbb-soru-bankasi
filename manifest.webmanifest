@@ -1,0 +1,26 @@
+{
+  "name": "KBB Soru Bankası",
+  "short_name": "KBB Soru",
+  "description": "KBB çoktan seçmeli soru bankası: Markdown sorularını yükle, konuya veya kaynağa göre test çöz.",
+  "lang": "tr",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0e7490",
+  "categories": ["education", "medical"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Test Çöz", "url": "./#/test", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Soru Bankası", "url": "./#/banka", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Dosya Yükle", "url": "./#/yukle", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

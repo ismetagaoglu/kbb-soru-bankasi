@@ -6,6 +6,17 @@ Markdown (`.md`) dosyalarındaki çoktan seçmeli KBB sorularını yükleyip kon
 - Sorular ve çözüm geçmişi tarayıcının **IndexedDB** alanında saklanır.
 - Derleme adımı ve `npm install` gerekmez: düz HTML, CSS ve JavaScript.
 
+## Uygulama olarak yükleme (PWA)
+
+Site, telefona veya bilgisayara uygulama gibi kurulabilir. Kurulduktan sonra kendi simgesiyle, tarayıcı çubuğu olmadan açılır ve **internet olmadan da çalışır**.
+
+- **Android (Chrome):** Siteyi açın, üstteki **Uygulamayı Yükle** düğmesine dokunun. Düğme görünmüyorsa Chrome menüsünden (⋮) **Uygulamayı yükle** ya da **Ana ekrana ekle** seçeneğini kullanın.
+- **iPhone/iPad (Safari):** **Paylaş** simgesine (kare ve yukarı ok) dokunun, ardından **Ana Ekrana Ekle**'yi seçin.
+  iOS'ta ana ekrandaki uygulama Safari'den **ayrı depolama** kullanır. Safari'de yüklediğiniz sorular uygulamada görünmez. Soruları doğrudan uygulamanın içinden yükleyin ya da Safari'den **Yedek İndir**, uygulamada **Yedeği Yükle** ile taşıyın.
+- **Bilgisayar (Chrome/Edge):** Adres çubuğundaki yükle simgesine ya da sayfadaki **Uygulamayı Yükle** düğmesine tıklayın.
+
+Kurulum için site `https` üzerinden (ör. GitHub Pages) ya da `localhost` üzerinden açılmalıdır. Uygulama internet varken her açılışta en güncel sürümü alır. İnternet yoksa önbellekteki sürümle çalışır.
+
 ## Dosyalar
 
 ```
@@ -16,6 +27,7 @@ js/parser.js      .md soru dosyası ayrıştırıcı ve içerik hash'i
 js/db.js          IndexedDB katmanı
 js/store.js       İçe aktarma, filtreleme, test, yedek işlemleri
 js/app.js         Sayfalar: Ana Sayfa, Test Çöz, Soru Bankası, Dosya Yükle, İstatistikler
+manifest.webmanifest, sw.js, icons/   Uygulama olarak kurulum ve çevrimdışı çalışma
 ```
 
 ## Bilgisayarda çalıştırma
@@ -33,7 +45,7 @@ python3 -m http.server 8000
 ## Ücretsiz yayımlama (GitHub Pages)
 
 1. GitHub'da yeni bir depo açın (ör. `kbb-soru-bankasi`).
-2. Bu klasördeki dosyaları depoya yükleyin: `index.html`, `css/`, `js/`, `README.md`, `.gitignore`.
+2. Bu klasördeki dosyaları depoya yükleyin: `index.html`, `manifest.webmanifest`, `sw.js`, `css/`, `js/`, `icons/`, `README.md`, `.gitignore`.
    **Soru dosyalarınızı, yedeklerinizi ve PDF'leri yüklemeyin.** `.gitignore` dosyası `.md` (README hariç), `.json` ve `.pdf` dosyalarının yanlışlıkla eklenmesini engeller.
 3. Depoda **Settings → Pages → Build and deployment → Source: Deploy from a branch**, Branch: `main` ve `/ (root)` seçip kaydedin.
 4. Bir iki dakika sonra site `https://KULLANICI-ADINIZ.github.io/kbb-soru-bankasi/` adresinde açılır.

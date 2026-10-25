@@ -170,6 +170,65 @@
     toast(theme === 'light' ? 'Açık tema' : theme === 'dark' ? 'Koyu tema' : 'Sistem teması');
   });
 
+  // ---------- Uygulama olarak yükleme (PWA) ----------
+  const installBtn = document.getElementById('installBtn');
+  let installPrompt = null;
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* çevrimdışı destek olmadan devam */ }); });
+  }
+  const refreshHome = () => { if ((location.hash || '#/').split('?')[0] === '#/') route(); };
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    installPrompt = e;
+    installBtn.hidden = false;
+    refreshHome();
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    installBtn.hidden = true;
+    toast('Uygulama yüklendi', 'ok');
+    requestPersist();
+    refreshHome();
+  });
+  async function promptInstall() {
+    if (!installPrompt) return;
+    const p = installPrompt;
+    installPrompt = null;
+    installBtn.hidden = true;
+    p.prompt();
+    try { await p.userChoice; } catch (e) { /* yok say */ }
+    refreshHome();
+  }
+  installBtn.addEventListener('click', promptInstall);
+
+  function installCard() {
+    if (isStandalone() || lsGet('kbb.installDismissed', false)) return '';
+    let body;
+    if (installPrompt) {
+      body = '<p>KBB Soru Bankası\'nı uygulama olarak yükleyin: ana ekrandan/masaüstünden tek dokunuşla açılır, internet olmadan da çalışır.</p>' +
+        '<div class="row wrap"><button type="button" class="btn primary" data-install>' + ICON.download + 'Uygulamayı Yükle</button>' +
+        '<button type="button" class="btn ghost" data-install-dismiss>Şimdi değil</button></div>';
+    } else if (isIOS) {
+      body = '<p>iPhone/iPad\'de yüklemek için Safari\'de <strong>Paylaş</strong> simgesine (kare ve yukarı ok) dokunun, ardından <strong>Ana Ekrana Ekle</strong>\'yi seçin.</p>' +
+        '<p class="muted small">Not: iPhone\'da ana ekrandan açılan uygulama Safari\'den ayrı depolama kullanır. Safari\'de yüklediğiniz soruları uygulamaya <strong>Yedek İndir / Yedeği Yükle</strong> ile taşıyın.</p>' +
+        '<div class="row wrap"><button type="button" class="btn ghost" data-install-dismiss>Anladım</button></div>';
+    } else {
+      return '';
+    }
+    return '<section class="card install-card"><div class="install-icon"><img src="icons/icon-192.png" alt="" width="44" height="44"></div>' +
+      '<div class="install-text"><h2 class="card-title">Uygulama olarak yükle</h2>' + body + '</div></section>';
+  }
+
+  function bindInstallCard() {
+    const b = view.querySelector('[data-install]');
+    if (b) b.addEventListener('click', promptInstall);
+    const d = view.querySelector('[data-install-dismiss]');
+    if (d) d.addEventListener('click', () => { lsSet('kbb.installDismissed', true); d.closest('.install-card').remove(); });
+  }
+
   // ---------- Yedek indirme ----------
   function downloadBackup() {
     const data = Store.buildBackup();
@@ -425,8 +484,9 @@
     let html = '<div class="page-head"><div><h1>Merhaba 👋</h1><p class="muted">KBB sorularını konuya, kaynağa göre ya da rastgele çöz.</p></div></div>';
 
     if (!total) {
-      view.innerHTML = html + emptyBank() + backupCard(bs);
+      view.innerHTML = html + installCard() + emptyBank() + backupCard(bs);
       bindBackupCard();
+      bindInstallCard();
       return;
     }
 
@@ -462,8 +522,10 @@
     if (done.length) {
       html += '<section class="card"><div class="card-head"><h2 class="card-title">Son testler</h2><a class="link" href="#/test">Tümü</a></div><ul class="test-list" data-tests>' + done.map(testRow).join('') + '</ul></section>';
     }
+    html += installCard();
     html += backupCard(bs);
     view.innerHTML = html;
+    bindInstallCard();
 
     view.querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', () => {
       const p = b.dataset.quick;

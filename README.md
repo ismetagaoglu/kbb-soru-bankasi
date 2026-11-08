@@ -28,6 +28,7 @@ js/markdown.js    Güvenli Markdown görüntüleyici (ham HTML'i asla çalışt�
 js/parser.js      .md soru dosyası ayrıştırıcı ve içerik hash'i
 js/db.js          IndexedDB katmanı
 js/store.js       İçe aktarma, filtreleme, test, yedek işlemleri
+js/fx.js          Ses, titreşim, konfeti ve animasyon efektleri
 js/app.js         Sayfalar: Ana Sayfa, Test Çöz, Soru Bankası, Dosya Yükle, İstatistikler
 manifest.webmanifest, sw.js, icons/   Uygulama olarak kurulum ve çevrimdışı çalışma
 ```
@@ -77,6 +78,10 @@ Diğer ücretsiz seçenekler: Netlify Drop (klasörü sürükleyip bırakın) ve
 4. **İstatistikler:** Konu ve kaynak bazında doğru oranlarını gösterir.
 
 Telefonda soru çözerken üst bar ve alt menü gizlenir, böylece soru ve şıklar ekrana sığar. Sorular arasında **sola/sağa kaydırarak** geçebilirsiniz.
+
+**Oyunlaştırma:** Her doğru cevap 10 XP kazandırır, yanlış cevap 2 XP. Bir testte üst üste doğru yaptıkça seri (🔥) büyür ve her doğru cevaba +2 XP eklenir (en fazla +10). XP biriktikçe seviye atlarsınız: Stajyer, İntörn, Asistan … KBB Efsanesi. Ana sayfada günlük hedef, gün serisi ve en iyi seri görünür. Doğru cevaplar, seriler, seviye atlama ve test sonu ses, titreşim ve konfetiyle kutlanır. XP ve seriler çözüm geçmişinden hesaplanır, bu yüzden yedekle birlikte taşınır.
+
+Ses, titreşim, tema ve günlük hedef sağ üstteki **⚙ Ayarlar** düğmesinden değiştirilir. Soru ekranının altında hızlı ses/titreşim düğmeleri de vardır. iPhone tarayıcıları titreşimi desteklemez. Cihazda "hareketi azalt" açıksa animasyonlar kapanır.
 
 Klavye kısayolları (bilgisayarda): A–E veya 1–5 şık seçer, Enter kontrol eder ya da sonraki soruya geçer, ← → sorular arasında gezinir, F favoriye ekler.
 

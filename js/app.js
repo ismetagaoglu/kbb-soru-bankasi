@@ -74,6 +74,10 @@
     shield: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg>',
     sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
     moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+    volume: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg>',
+    vibrate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 8v8M21 8v8"/></svg>',
     auto: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>'
   };
 
@@ -157,20 +161,50 @@
   function applyTheme(t) {
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
-    themeBtn.innerHTML = t === 'light' ? ICON.sun : t === 'dark' ? ICON.moon : ICON.auto;
-    const label = t === 'light' ? 'Açık tema' : t === 'dark' ? 'Koyu tema' : 'Sistem teması';
-    themeBtn.title = label + ' (değiştirmek için tıklayın)';
-    themeBtn.setAttribute('aria-label', label + ' — değiştir');
+    themeBtn.innerHTML = ICON.gear;
+    themeBtn.title = 'Ayarlar (tema, ses, titreşim, günlük hedef)';
+    themeBtn.setAttribute('aria-label', 'Ayarlar');
   }
   let theme = 'auto';
   try { theme = localStorage.getItem('kbb.theme') || 'auto'; } catch (e) { /* yok say */ }
   applyTheme(theme);
-  themeBtn.addEventListener('click', () => {
-    theme = theme === 'auto' ? 'light' : theme === 'light' ? 'dark' : 'auto';
-    try { localStorage.setItem('kbb.theme', theme); } catch (e) { /* yok say */ }
-    applyTheme(theme);
-    toast(theme === 'light' ? 'Açık tema' : theme === 'dark' ? 'Koyu tema' : 'Sistem teması');
-  });
+  themeBtn.addEventListener('click', openSettings);
+
+  // ---------- Ayarlar: tema, ses, titreşim, günlük hedef ----------
+  const dailyGoal = () => lsGet('kbb.goal', 20);
+  function openSettings() {
+    const seg = (name, items, cur) => '<div class="seg" role="radiogroup">' + items.map(([v, l]) =>
+      '<label><input type="radio" name="' + name + '" value="' + v + '"' + (String(cur) === String(v) ? ' checked' : '') + '><span>' + l + '</span></label>').join('') + '</div>';
+    const sw = (name, label, on, note) => '<label class="switch-row"><span><strong>' + label + '</strong>' + (note ? '<em>' + note + '</em>' : '') + '</span>' +
+      '<input type="checkbox" class="switch" name="' + name + '"' + (on ? ' checked' : '') + '></label>';
+    modal({
+      title: 'Ayarlar',
+      body: '<div class="settings">' +
+        '<div class="set-group"><h3>Tema</h3>' + seg('theme', [['auto', 'Sistem'], ['light', 'Açık'], ['dark', 'Koyu']], theme) + '</div>' +
+        '<div class="set-group"><h3>Geri bildirim</h3>' +
+        sw('sound', 'Ses efektleri', FX.sound, 'Doğru/yanlış, seri ve seviye sesleri') +
+        sw('haptic', 'Titreşim', FX.haptic, FX.canVibrate ? 'Cevaplarda kısa titreşim' : 'Bu cihaz/tarayıcı titreşimi desteklemiyor (iPhone dahil)') +
+        '</div>' +
+        '<div class="set-group"><h3>Günlük hedef</h3>' + seg('goal', [[10, '10'], [20, '20'], [30, '30'], [50, '50'], [100, '100']], dailyGoal()) +
+        '<p class="muted small">Her gün çözmek istediğiniz soru sayısı. Hedefe ulaşınca kutlama yapılır.</p></div>' +
+        '</div>',
+      actions: [{ label: 'Kapat', value: null, kind: 'primary' }],
+      onOpen: w => {
+        const hs = w.querySelector('[name=haptic]');
+        if (!FX.canVibrate) hs.disabled = true;
+        w.addEventListener('change', e => {
+          const t = e.target;
+          if (t.name === 'theme') {
+            theme = t.value;
+            try { localStorage.setItem('kbb.theme', theme); } catch (err) { /* yok say */ }
+            applyTheme(theme);
+          } else if (t.name === 'sound') { FX.sound = t.checked; if (t.checked) FX.play('correct', 1); }
+          else if (t.name === 'haptic') { FX.haptic = t.checked; if (t.checked) FX.buzz('correct'); }
+          else if (t.name === 'goal') { lsSet('kbb.goal', Number(t.value)); if (location.hash === '#/' || !location.hash) route(); }
+        });
+      }
+    });
+  }
 
   // ---------- Uygulama olarak yükleme (PWA) ----------
   const installBtn = document.getElementById('installBtn');
@@ -505,6 +539,24 @@
   }
 
   // ---------- Ana Sayfa ----------
+  function gameCard() {
+    const g = Store.game();
+    const goal = dailyGoal();
+    const done = Math.min(g.todayAnswered, goal);
+    const gp = Math.round((done / goal) * 100);
+    const lp = Math.round((g.into / g.need) * 100);
+    return '<section class="card game-card">' +
+      '<div class="lvl"><div class="lvl-badge" title="Seviye"><span>' + g.level + '</span></div>' +
+      '<div class="lvl-info"><div class="lvl-title">Seviye ' + g.level + ' · <strong>' + esc(g.title) + '</strong></div>' +
+      '<div class="xpbar" title="' + g.into + ' / ' + g.need + ' XP"><span style="width:' + lp + '%"></span></div>' +
+      '<div class="lvl-sub">' + fmtNum(g.xp) + ' XP · sonraki seviyeye ' + fmtNum(g.to - g.xp) + ' XP</div></div></div>' +
+      '<div class="game-stats">' +
+      '<div class="gs streak' + (g.playedToday ? ' lit' : '') + '" title="Üst üste çözüm yapılan gün"><span class="gs-ico">🔥</span><strong>' + g.dayStreak + '</strong><span>gün seri</span></div>' +
+      '<div class="gs goal' + (g.todayAnswered >= goal ? ' done' : '') + '" title="Günlük hedef"><span class="mini-ring" style="--p:' + gp + '"><span>' + (g.todayAnswered >= goal ? '✓' : '🎯') + '</span></span><strong>' + fmtNum(g.todayAnswered) + '/' + goal + '</strong><span>bugün</span></div>' +
+      '<div class="gs" title="En uzun doğru serisi"><span class="gs-ico">⚡</span><strong>' + g.bestCombo + '</strong><span>en iyi seri</span></div>' +
+      '</div></section>';
+  }
+
   function viewHome() {
     const total = S.questions.size;
     const pc = Store.poolCounts();
@@ -525,6 +577,7 @@
       return;
     }
 
+    html += gameCard();
     html += '<div class="stats-grid">' +
       statCard('Toplam soru', fmtNum(total), fmtNum(Store.sourceCounts().size) + ' kaynak', '', '#/banka') +
       statCard('Çözülen soru', fmtNum(solved), pct(solved, total) + ' tamamlandı', '', '#/istatistik') +
@@ -678,6 +731,51 @@
     return '<div class="q-meta">' + chips.join('') + '</div>';
   }
 
+  // Cevap sonrası kutlama: ses, titreşim, konfeti, +XP, seri, seviye ve günlük hedef
+  const COMBO_MILESTONES = [3, 5, 10, 15, 20, 30, 40, 50];
+  function celebrateAnswer(correct, combo, before, after) {
+    const gain = after.xp - before.xp;
+    if (correct) {
+      const opt = view.querySelector('.option.correct');
+      if (opt && !reduceMotion()) opt.classList.add('pop');
+      FX.play('correct', combo);
+      FX.buzz('correct');
+      FX.burstFrom(opt, 16 + Math.min(combo, 10) * 5, 7 + Math.min(combo, 10) * 0.4);
+      FX.floatText(opt, '+' + gain + ' XP', 'xp');
+      if (COMBO_MILESTONES.includes(combo)) {
+        setTimeout(() => {
+          FX.banner(combo + ' doğru üst üste! 🔥', combo >= 10 ? 'Durdurulamıyorsun!' : combo >= 5 ? 'Muhteşem seri!' : 'Seri başladı!', 'combo');
+          FX.hit('combo', combo);
+          FX.confetti({ count: 70 + combo * 4, power: 12, y: innerHeight * 0.45 });
+        }, 350);
+      }
+    } else {
+      const opt = view.querySelector('.option.wrong');
+      if (opt && !reduceMotion()) opt.classList.add('shake');
+      FX.hit('wrong');
+      FX.floatText(opt, '+' + gain + ' XP', 'xp dim');
+    }
+    let delay = correct && COMBO_MILESTONES.includes(combo) ? 2000 : 450;
+    if (after.level > before.level) {
+      setTimeout(() => {
+        FX.banner('Seviye ' + after.level + '! ⭐', after.title !== before.title ? 'Yeni unvan: ' + after.title : 'Böyle devam!', 'level');
+        FX.hit('level');
+        FX.confetti({ rain: true, count: 160 });
+      }, delay);
+      delay += 2000;
+    }
+    const goal = dailyGoal();
+    if (before.todayAnswered < goal && after.todayAnswered >= goal) {
+      setTimeout(() => {
+        FX.banner('Günlük hedef tamam! 🎯', goal + ' soru çözdün' + (after.dayStreak > 1 ? ' · ' + after.dayStreak + ' gün seri' : ''), 'goal');
+        FX.hit('goal');
+        FX.confetti({ count: 120, power: 13, y: innerHeight * 0.6 });
+      }, delay);
+    } else if (!before.playedToday && after.playedToday && after.dayStreak > 1) {
+      setTimeout(() => toast('🔥 ' + after.dayStreak + ' gündür üst üste çözüyorsun!', 'ok'), delay);
+    }
+  }
+
   function viewSolve(id) {
     const t = S.tests.get(id);
     if (!t) {
@@ -720,21 +818,36 @@
       location.hash = '#/sonuc/' + t.id;
     };
 
+    let comboBumped = false;
     const check = async () => {
       const qid = qids[t.index];
       const choice = t.selections[qid];
       if (!choice || t.answers[qid] || t.finishedAt) return;
-      await Store.recordAnswer(t, qid, choice);
+      const before = Store.game();
+      const prevCombo = Store.testCombo(t);
+      const a = await Store.recordAnswer(t, qid, choice);
+      if (!a) return;
+      const after = Store.game();
+      const combo = Store.testCombo(t);
+      comboBumped = combo > prevCombo && combo >= 2;
       render();
+      comboBumped = false;
+      celebrateAnswer(a.correct, combo, before, after);
       const fb = view.querySelector('.feedback');
-      if (fb && fb.getBoundingClientRect().top > window.innerHeight - 120) fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (fb && fb.getBoundingClientRect().top > window.innerHeight - 120) fb.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' });
     };
 
     const select = async L => {
       const qid = qids[t.index];
       if (t.answers[qid] || t.finishedAt) return;
+      const changed = t.selections[qid] !== L;
       t.selections[qid] = L;
       render();
+      if (changed) {
+        FX.hit('tap');
+        const o = view.querySelector('.option.selected');
+        if (o && !reduceMotion()) o.classList.add('press');
+      }
       await Store.saveTest(t);
     };
 
@@ -748,6 +861,7 @@
       const st = Store.testStats(t);
       const fav = S.favorites.has(qid);
       const isLast = t.index === qids.length - 1;
+      const combo = Store.testCombo(t);
 
       let opts = '';
       for (const L of LETTERS) {
@@ -801,7 +915,8 @@
         '<h1 class="solve-title" title="' + esc(t.title) + '">' + (finished ? 'İnceleme · ' : '') + esc(t.title) + '</h1>' +
         '<div class="solve-progress"><span class="counter"><strong>' + (t.index + 1) + '</strong>/' + qids.length + '</span>' +
         '<div class="progress" role="progressbar" aria-label="Cevaplanan" aria-valuemin="0" aria-valuemax="' + qids.length + '" aria-valuenow="' + st.answered + '"><span style="width:' + Math.round((st.answered / qids.length) * 100) + '%"></span></div>' +
-        '<span class="score"><span class="ok-text" title="Doğru">' + st.correct + '✓</span><span class="err-text" title="Yanlış">' + st.wrong + '✗</span></span></div>' +
+        '<span class="score"><span class="ok-text" title="Doğru">' + st.correct + '✓</span><span class="err-text" title="Yanlış">' + st.wrong + '✗</span>' +
+        (combo >= 2 ? '<span class="combo-chip' + (comboBumped ? ' bump' : '') + (combo >= 5 ? ' hot' : '') + '" title="Doğru serisi">🔥' + combo + '</span>' : '') + '</span></div>' +
         '</div>' +
         '<button type="button" class="fav-btn' + (fav ? ' on' : '') + '" data-fav aria-pressed="' + fav + '" title="' + (fav ? 'Favorilerden çıkar' : 'Favoriye ekle') + '" aria-label="' + (fav ? 'Favorilerden çıkar' : 'Favoriye ekle') + '">' + ICON.star + '<span>' + (fav ? 'Favoride' : 'Favori') + '</span></button>' +
         (finished ? '<a class="btn ghost sm" href="#/sonuc/' + t.id + '">Sonuçlar</a>' : '<button type="button" class="btn ghost sm" data-finish>Bitir</button>') +
@@ -819,6 +934,10 @@
         '<button type="button" class="btn ghost lg" data-skip' + (isLast ? ' disabled' : '') + ' title="Sonraki soru"><span class="hide-xs">Sonraki</span>' + ICON.right + '</button>' +
         '</div>' +
         '<details class="card navigator"><summary>Soru listesi <span class="muted">(' + st.answered + ' cevaplandı)</span></summary><div class="nav-grid">' + nav + '</div></details>' +
+        '<div class="fx-toggles">' +
+        '<button type="button" class="chip-btn' + (FX.sound ? ' on' : '') + '" data-toggle-sound aria-pressed="' + FX.sound + '">' + (FX.sound ? ICON.volume : ICON.mute) + '<span>Ses ' + (FX.sound ? 'açık' : 'kapalı') + '</span></button>' +
+        (FX.canVibrate ? '<button type="button" class="chip-btn' + (FX.haptic ? ' on' : '') + '" data-toggle-haptic aria-pressed="' + FX.haptic + '">' + ICON.vibrate + '<span>Titreşim ' + (FX.haptic ? 'açık' : 'kapalı') + '</span></button>' : '') +
+        '</div>' +
         '<p class="kbd-hint muted small hide-touch">Kısayollar: A–E veya 1–5 şık seç · Enter kontrol/sonraki · ← → gezin · F favori</p>' +
         '<p class="kbd-hint muted small touch-only">Sorular arasında geçmek için sola/sağa kaydırın.</p>' +
         '</div>';
@@ -834,6 +953,8 @@
       if (e.target.closest('[data-next]') || e.target.closest('[data-skip]')) { go(t.index + 1); return; }
       if (e.target.closest('[data-prev]')) { go(t.index - 1); return; }
       if (e.target.closest('[data-finish]')) { finish(); return; }
+      if (e.target.closest('[data-toggle-sound]')) { FX.sound = !FX.sound; if (FX.sound) FX.play('tap'); render(); return; }
+      if (e.target.closest('[data-toggle-haptic]')) { FX.haptic = !FX.haptic; if (FX.haptic) FX.buzz('tap'); render(); return; }
       const g = e.target.closest('[data-go]');
       if (g) { go(Number(g.dataset.go)); return; }
       if (e.target.closest('[data-fav]')) {
@@ -885,7 +1006,9 @@
       const dx = p.clientX - s0.x, dy = p.clientY - s0.y;
       const fast = Date.now() - s0.t < 300 && Math.abs(dx) > 35;
       if ((Math.abs(dx) > 70 || fast) && Math.abs(dx) > Math.abs(dy) * 1.3) {
-        go(t.index + (dx < 0 ? 1 : -1), true);
+        const target = t.index + (dx < 0 ? 1 : -1);
+        if (target >= 0 && target < qids.length) { FX.play('swipe'); FX.buzz('tap'); }
+        go(target, true);
       }
     };
 
@@ -934,8 +1057,15 @@
 
     let html = '<div class="page-head"><div><div class="eyebrow">Test sonucu</div><h1>' + esc(t.title) + '</h1>' +
       '<p class="muted">' + (t.finishedAt ? 'Bitirildi: ' + fmtDate(t.finishedAt) : 'Henüz bitirilmedi') + '</p></div></div>';
+    const g = Store.game();
+    const xpTest = g.xpByTest.get(t.id) || 0;
+    const stars = rate >= 90 ? 3 : rate >= 70 ? 2 : rate >= 50 ? 1 : 0;
+    const verdict = !st.answered ? 'Henüz cevap yok' : rate >= 90 ? 'Mükemmel! 🏆' : rate >= 70 ? 'Çok iyi! 🎉' : rate >= 50 ? 'İyi gidiyorsun 👍' : 'Tekrar et, gelişiyorsun 💪';
     html += '<section class="card result-hero">' +
-      '<div class="ring" style="--p:' + rate + '"><div><strong>%' + rate + '</strong><span>başarı</span></div></div>' +
+      '<div class="stars" aria-label="' + stars + ' yıldız">' + [0, 1, 2].map(i => '<span class="star' + (i < stars ? ' on' : '') + '" style="--i:' + i + '">★</span>').join('') + '</div>' +
+      '<div class="ring" style="--p:' + rate + '"><div><strong data-rate>%' + rate + '</strong><span>başarı</span></div></div>' +
+      '<div class="verdict">' + verdict + '</div>' +
+      (xpTest ? '<div class="xp-earned">+<span data-xp>' + fmtNum(xpTest) + '</span> XP <small>· Seviye ' + g.level + ' ' + esc(g.title) + '</small></div>' : '') +
       '<div class="result-stats">' +
       '<div class="rs ok"><strong>' + st.correct + '</strong><span>Doğru</span></div>' +
       '<div class="rs bad"><strong>' + st.wrong + '</strong><span>Yanlış</span></div>' +
@@ -966,6 +1096,38 @@
         '<span class="ri-text">' + esc(MD.plain(q.stem, 140)) + '</span><span class="ri-status">' + esc(label) + '</span></button></li>';
     }).join('') + '</ol></section>';
     view.innerHTML = html;
+
+    // İlk açılışta kutlama (sonradan tekrar açıldığında sessiz)
+    const seen = lsGet('kbb.celebrated', []);
+    const ringEl = view.querySelector('.ring');
+    if (t.finishedAt && st.answered && !seen.includes(t.id)) {
+      lsSet('kbb.celebrated', [t.id].concat(seen).slice(0, 100));
+      if (!reduceMotion()) {
+        view.querySelector('.result-hero').classList.add('celebrate');
+        const rateEl = view.querySelector('[data-rate]');
+        let start = null;
+        const anim = now => {
+          if (start == null) start = now;
+          const k = Math.min((now - start) / 1100, 1);
+          const v = Math.round(rate * (1 - Math.pow(1 - k, 3)));
+          ringEl.style.setProperty('--p', v);
+          rateEl.textContent = '%' + v;
+          if (k < 1) requestAnimationFrame(anim);
+        };
+        ringEl.style.setProperty('--p', 0);
+        requestAnimationFrame(anim);
+        FX.countUp(view.querySelector('[data-xp]'), xpTest, 1100, fmtNum);
+        for (let i = 0; i < stars; i++) setTimeout(() => FX.hit('star', i), 1100 + i * 220);
+      }
+      setTimeout(() => {
+        FX.play('finish', rate >= 70);
+        FX.buzz('finish');
+        if (rate >= 70) FX.confetti({ count: rate >= 90 ? 200 : 120, power: 14, y: innerHeight * 0.35 });
+        if (rate >= 90) setTimeout(() => FX.confetti({ rain: true, count: 140 }), 500);
+      }, reduceMotion() ? 0 : 1100 + stars * 220);
+    } else {
+      view.querySelector('.result-hero').classList.add('static');
+    }
 
     view.onclick = async e => {
       const r = e.target.closest('[data-retry]');

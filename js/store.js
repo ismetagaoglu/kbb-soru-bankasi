@@ -268,6 +268,62 @@
     return a;
   }
 
+  // ---------- Oyunlaştırma: XP, seviye, seri, günlük hedef ----------
+  // Hepsi çözüm geçmişinden hesaplanır; ayrıca kaydedilmez (yedekle birlikte taşınır).
+  const XP_CORRECT = 10, XP_WRONG = 2, XP_COMBO_STEP = 2, XP_COMBO_MAX = 5;
+  const xpForLevel = L => 25 * L * (L - 1); // L1:0, L2:50, L3:150, L4:300, L5:500 …
+  const LEVEL_TITLES = [[1, 'Stajyer'], [3, 'İntörn'], [5, 'Asistan'], [10, 'Kıdemli Asistan'], [15, 'Başasistan'], [20, 'Uzman'], [30, 'Doçent'], [40, 'Profesör'], [60, 'KBB Efsanesi']];
+  const dayKey = ms => { const d = new Date(ms); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  const answerXP = (correct, combo) => correct ? XP_CORRECT + Math.min(Math.max(combo - 1, 0), XP_COMBO_MAX) * XP_COMBO_STEP : XP_WRONG;
+
+  function levelInfo(xp) {
+    let L = 1;
+    while (xpForLevel(L + 1) <= xp) L++;
+    let title = LEVEL_TITLES[0][1];
+    for (const [min, name] of LEVEL_TITLES) if (L >= min) title = name;
+    const from = xpForLevel(L), to = xpForLevel(L + 1);
+    return { level: L, title, from, to, into: xp - from, need: to - from };
+  }
+
+  let gameCache = null;
+  function game() {
+    const sig = S.attempts.length + ':' + (S.attempts.length ? S.attempts[0].id + S.attempts[S.attempts.length - 1].id : '');
+    if (gameCache && gameCache.n === sig && gameCache.day === dayKey(Date.now())) return gameCache.v;
+    const list = S.attempts.slice().sort((a, b) => a.at - b.at);
+    let xp = 0, combo = 0, best = 0, lastTest = null;
+    const days = new Set();
+    const byTest = new Map();
+    const today = dayKey(Date.now());
+    let todayN = 0, todayC = 0;
+    for (const a of list) {
+      if (a.testId !== lastTest) { combo = 0; lastTest = a.testId; }
+      combo = a.correct ? combo + 1 : 0;
+      if (combo > best) best = combo;
+      const g = answerXP(a.correct, combo);
+      xp += g;
+      if (a.testId) byTest.set(a.testId, (byTest.get(a.testId) || 0) + g);
+      const k = dayKey(a.at);
+      days.add(k);
+      if (k === today) { todayN++; if (a.correct) todayC++; }
+    }
+    // Gün serisi: bugün (ya da henüz çözmediysen dün) geriye doğru kesintisiz günler
+    let streak = 0;
+    const d = new Date();
+    if (!days.has(dayKey(d.getTime()))) d.setDate(d.getDate() - 1);
+    while (days.has(dayKey(d.getTime()))) { streak++; d.setDate(d.getDate() - 1); }
+    const v = Object.assign({ xp, bestCombo: best, dayStreak: streak, todayAnswered: todayN, todayCorrect: todayC, playedToday: todayN > 0, xpByTest: byTest }, levelInfo(xp));
+    gameCache = { n: sig, day: today, v };
+    return v;
+  }
+
+  // Bir testteki mevcut doğru serisi (cevap sırasına göre)
+  function testCombo(test) {
+    const list = Object.values(test.answers || {}).sort((a, b) => a.at - b.at);
+    let c = 0;
+    for (const a of list) c = a.correct ? c + 1 : 0;
+    return c;
+  }
+
   async function toggleFavorite(qid) {
     if (S.favorites.has(qid)) {
       await DB.del('favorites', qid);
@@ -607,6 +663,6 @@
     S, LETTERS, uid, load, setMeta, sorted, fold, filter, emptyCrit, poolCounts, buildTree, inTopic,
     sourceNames, sourceCounts, diffCounts, typeCounts, classify, commitImport, recordAnswer, toggleFavorite,
     createTest, saveTest, deleteTest, testList, testStats, updateQuestion, deleteQuestion, deleteQuestions, sourcePlan, deleteSource, renameTopic,
-    renameSource, buildBackup, parseBackup, importBackup, clearAll
+    renameSource, game, testCombo, answerXP, levelInfo, buildBackup, parseBackup, importBackup, clearAll
   };
 })(window);

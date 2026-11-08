@@ -50,6 +50,8 @@
   const typeLabel = t => (t ? t : 'Belirtilmemiş');
   const lastSeg = topic => topic.split(' > ').pop();
 
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function sourcesText(q) {
     if (!q.sources || !q.sources.length) return '';
     return q.sources.map(s => s.name + (s.page ? ' · ' + s.page : '')).join('; ');
@@ -180,44 +182,76 @@
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* çevrimdışı destek olmadan devam */ }); });
   }
   const refreshHome = () => { if ((location.hash || '#/').split('?')[0] === '#/') route(); };
+  const ua = navigator.userAgent;
+  const isAndroid = /android/i.test(ua);
+  // Instagram, Facebook, WhatsApp vb. uygulama içi tarayıcılar kurulumu desteklemez
+  const inAppBrowser = /FBAN|FBAV|Instagram|Line\/|WhatsApp|Telegram|; wv\)|GSA\//i.test(ua);
+  const iosNotSafari = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+  const canInstallHere = () => !isStandalone() && location.protocol !== 'file:';
+  function syncInstallBtn() { installBtn.hidden = !canInstallHere(); }
+  syncInstallBtn();
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     installPrompt = e;
-    installBtn.hidden = false;
+    syncInstallBtn();
     refreshHome();
   });
   window.addEventListener('appinstalled', () => {
     installPrompt = null;
     installBtn.hidden = true;
-    toast('Uygulama yüklendi', 'ok');
+    toast('Uygulama yüklendi. Ana ekranınızdan açabilirsiniz.', 'ok');
     requestPersist();
     refreshHome();
   });
+  window.matchMedia('(display-mode: standalone)').addEventListener('change', syncInstallBtn);
+
+  function installSteps() {
+    const li = a => '<ol class="steps">' + a.map(x => '<li>' + x + '</li>').join('') + '</ol>';
+    if (!window.isSecureContext && location.hostname !== 'localhost') {
+      return '<p>Bu adres güvenli bağlantı (<strong>https</strong>) kullanmadığı için tarayıcılar uygulama kurulumuna izin vermez.</p>' +
+        '<p>Kurulum için şu adresi açın:<br><a href="https://ismetagaoglu.github.io/kbb-soru-bankasi/">ismetagaoglu.github.io/kbb-soru-bankasi</a></p>';
+    }
+    if (inAppBrowser) {
+      return '<p>Şu an bir uygulamanın içindeki tarayıcıdasınız (Instagram, WhatsApp vb.). Burada kurulum yapılamaz.</p>' +
+        li(['Sağ üstteki <strong>⋮</strong> veya <strong>…</strong> menüsüne dokunun.', '<strong>' + (isIOS ? 'Safari\'de aç' : 'Tarayıcıda aç / Chrome\'da aç') + '</strong> seçeneğini seçin.', 'Açılan sayfada tekrar <strong>Uygulamayı Yükle</strong>\'ye dokunun.']);
+    }
+    if (isIOS) {
+      return (iosNotSafari ? '<p class="warn-text small">iPhone\'da kurulum en sorunsuz <strong>Safari</strong> ile yapılır. Bu sayfayı Safari\'de açmanız önerilir.</p>' : '') +
+        li(['Alttaki (veya üstteki) <strong>Paylaş</strong> simgesine dokunun <span class="muted">(kare ve yukarı ok)</span>.', 'Listeyi aşağı kaydırıp <strong>Ana Ekrana Ekle</strong>\'yi seçin.', 'Sağ üstte <strong>Ekle</strong>\'ye dokunun.']) +
+        '<p class="muted small">Not: Ana ekrandan açılan uygulama Safari\'den ayrı depolama kullanır. Safari\'de yüklediğiniz soruları uygulamaya <strong>Yedek İndir / Yedeği Yükle</strong> ile taşıyın.</p>';
+    }
+    if (isAndroid) {
+      return li(['Chrome\'da sağ üstteki <strong>⋮</strong> menüsüne dokunun.', '<strong>Uygulamayı yükle</strong> ya da <strong>Ana ekrana ekle</strong>\'yi seçin.', 'Açılan pencerede <strong>Yükle</strong>\'ye dokunun.']) +
+        '<p class="muted small">Samsung İnternet\'te: alttaki menü (☰) → <strong>Sayfayı ekle</strong> → <strong>Ana ekran</strong>.</p>';
+    }
+    return li(['Chrome veya Edge\'de adres çubuğunun sağındaki <strong>yükle</strong> simgesine tıklayın <span class="muted">(ekran ve aşağı ok)</span>.', 'Simge yoksa menüden (<strong>⋮</strong> / <strong>…</strong>) <strong>Yayınla, kaydet ve paylaş → Sayfayı uygulama olarak yükle</strong> ya da <strong>Uygulamalar → Bu siteyi uygulama olarak yükle</strong>\'yi seçin.']) +
+      '<p class="muted small">Safari (Mac): <strong>Dosya → Dock\'a Ekle</strong>. Firefox masaüstünde uygulama kurulumu desteklenmez.</p>';
+  }
+
   async function promptInstall() {
-    if (!installPrompt) return;
-    const p = installPrompt;
-    installPrompt = null;
-    installBtn.hidden = true;
-    p.prompt();
-    try { await p.userChoice; } catch (e) { /* yok say */ }
-    refreshHome();
+    if (installPrompt) {
+      const p = installPrompt;
+      installPrompt = null;
+      p.prompt();
+      try { await p.userChoice; } catch (e) { /* yok say */ }
+      refreshHome();
+      return;
+    }
+    await modal({
+      title: 'Uygulama olarak yükle',
+      body: '<div class="install-help"><img src="icons/icon-192.png" alt="" width="52" height="52">' +
+        '<p>Yüklenen uygulama ana ekrandan tek dokunuşla, tam ekran açılır ve <strong>internet olmadan da çalışır</strong>.</p></div>' + installSteps(),
+      actions: [{ label: 'Tamam', value: null, kind: 'primary' }]
+    });
   }
   installBtn.addEventListener('click', promptInstall);
 
   function installCard() {
-    if (isStandalone() || lsGet('kbb.installDismissed', false)) return '';
-    let body;
-    if (installPrompt) {
-      body = '<p>KBB Soru Bankası\'nı uygulama olarak yükleyin: ana ekrandan/masaüstünden tek dokunuşla açılır, internet olmadan da çalışır.</p>' +
-        '<div class="row wrap"><button type="button" class="btn primary" data-install>' + ICON.download + 'Uygulamayı Yükle</button>' +
-        '<button type="button" class="btn ghost" data-install-dismiss>Şimdi değil</button></div>';
-    } else if (isIOS) {
-      body = '<p>iPhone/iPad\'de yüklemek için Safari\'de <strong>Paylaş</strong> simgesine (kare ve yukarı ok) dokunun, ardından <strong>Ana Ekrana Ekle</strong>\'yi seçin.</p>' +
-        '<p class="muted small">Not: iPhone\'da ana ekrandan açılan uygulama Safari\'den ayrı depolama kullanır. Safari\'de yüklediğiniz soruları uygulamaya <strong>Yedek İndir / Yedeği Yükle</strong> ile taşıyın.</p>' +
-        '<div class="row wrap"><button type="button" class="btn ghost" data-install-dismiss>Anladım</button></div>';
-    } else {
-      return '';
-    }
+    if (!canInstallHere() || lsGet('kbb.installDismissed', false)) return '';
+    const body = '<p>Ana ekrandan tek dokunuşla açılır, tam ekran çalışır ve internet olmadan da kullanılabilir.</p>' +
+      '<div class="row wrap"><button type="button" class="btn primary" data-install>' + ICON.download + 'Uygulamayı Yükle</button>' +
+      '<button type="button" class="btn ghost" data-install-dismiss>Şimdi değil</button></div>';
     return '<section class="card install-card"><div class="install-icon"><img src="icons/icon-192.png" alt="" width="44" height="44"></div>' +
       '<div class="install-text"><h2 class="card-title">Uygulama olarak yükle</h2>' + body + '</div></section>';
   }
@@ -226,7 +260,7 @@
     const b = view.querySelector('[data-install]');
     if (b) b.addEventListener('click', promptInstall);
     const d = view.querySelector('[data-install-dismiss]');
-    if (d) d.addEventListener('click', () => { lsSet('kbb.installDismissed', true); d.closest('.install-card').remove(); });
+    if (d) d.addEventListener('click', () => { lsSet('kbb.installDismissed', true); d.closest('.install-card').remove(); toast('Yüklemek isterseniz üstteki Yükle düğmesini kullanabilirsiniz.'); });
   }
 
   // ---------- Yedek indirme ----------
@@ -658,10 +692,16 @@
     if (t.index >= qids.length) t.index = qids.length - 1;
     if (t.index < 0) t.index = 0;
 
-    const go = async i => {
-      if (i < 0 || i >= qids.length || i === t.index) return;
+    const go = async (i, swiped) => {
+      if (i < 0 || i >= qids.length || i === t.index) {
+        if (swiped) bump(i < 0 ? 'right' : 'left');
+        return;
+      }
+      const dir = i > t.index ? 'next' : 'prev';
       t.index = i;
       render();
+      const card = view.querySelector('.qcard');
+      if (card && !reduceMotion()) card.classList.add('enter-' + dir);
       window.scrollTo({ top: 0 });
       await Store.saveTest(t);
     };
@@ -756,15 +796,18 @@
       view.innerHTML =
         '<div class="solve">' +
         '<div class="solve-head">' +
-        '<div class="solve-title"><a class="back" href="#/test" aria-label="Testlere dön">' + ICON.left + '</a><div><div class="eyebrow">' + (finished ? 'İnceleme' : 'Test') + '</div><h1>' + esc(t.title) + '</h1></div></div>' +
+        '<a class="back" href="#/test" aria-label="Testlere dön" title="Testlere dön">' + ICON.left + '</a>' +
+        '<div class="solve-info">' +
+        '<h1 class="solve-title" title="' + esc(t.title) + '">' + (finished ? 'İnceleme · ' : '') + esc(t.title) + '</h1>' +
+        '<div class="solve-progress"><span class="counter"><strong>' + (t.index + 1) + '</strong>/' + qids.length + '</span>' +
+        '<div class="progress" role="progressbar" aria-label="Cevaplanan" aria-valuemin="0" aria-valuemax="' + qids.length + '" aria-valuenow="' + st.answered + '"><span style="width:' + Math.round((st.answered / qids.length) * 100) + '%"></span></div>' +
+        '<span class="score"><span class="ok-text" title="Doğru">' + st.correct + '✓</span><span class="err-text" title="Yanlış">' + st.wrong + '✗</span></span></div>' +
+        '</div>' +
+        '<button type="button" class="fav-btn' + (fav ? ' on' : '') + '" data-fav aria-pressed="' + fav + '" title="' + (fav ? 'Favorilerden çıkar' : 'Favoriye ekle') + '" aria-label="' + (fav ? 'Favorilerden çıkar' : 'Favoriye ekle') + '">' + ICON.star + '<span>' + (fav ? 'Favoride' : 'Favori') + '</span></button>' +
         (finished ? '<a class="btn ghost sm" href="#/sonuc/' + t.id + '">Sonuçlar</a>' : '<button type="button" class="btn ghost sm" data-finish>Bitir</button>') +
         '</div>' +
-        '<div class="solve-progress"><div class="counter"><strong>' + (t.index + 1) + '</strong> / ' + qids.length + '</div>' +
-        '<div class="progress"><span style="width:' + Math.round((st.answered / qids.length) * 100) + '%"></span></div>' +
-        '<div class="score"><span class="ok-text">' + st.correct + ' ✓</span><span class="err-text">' + st.wrong + ' ✗</span></div></div>' +
         '<article class="card qcard">' +
-        '<div class="qcard-top">' + questionMeta(q, revealed) +
-        '<button type="button" class="fav-btn' + (fav ? ' on' : '') + '" data-fav aria-pressed="' + fav + '" title="' + (fav ? 'Favorilerden çıkar' : 'Favoriye ekle') + '">' + ICON.star + '<span>' + (fav ? 'Favoride' : 'Favoriye Ekle') + '</span></button></div>' +
+        '<div class="qcard-top">' + questionMeta(q, revealed) + '</div>' +
         '<div class="stem md">' + md(q.stem) + '</div>' +
         '<div class="options">' + opts + '</div>' +
         feedback +
@@ -777,6 +820,7 @@
         '</div>' +
         '<details class="card navigator"><summary>Soru listesi <span class="muted">(' + st.answered + ' cevaplandı)</span></summary><div class="nav-grid">' + nav + '</div></details>' +
         '<p class="kbd-hint muted small hide-touch">Kısayollar: A–E veya 1–5 şık seç · Enter kontrol/sonraki · ← → gezin · F favori</p>' +
+        '<p class="kbd-hint muted small touch-only">Sorular arasında geçmek için sola/sağa kaydırın.</p>' +
         '</div>';
       const navEl = view.querySelector('.navigator');
       if (lsGet('kbb.navOpen', false)) navEl.open = true;
@@ -796,6 +840,52 @@
         const on = await Store.toggleFavorite(qids[t.index]);
         toast(on ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı');
         render();
+      }
+    };
+
+    // Kaydırma (swipe): sola → sonraki, sağa → önceki
+    function bump(side) {
+      const card = view.querySelector('.qcard');
+      if (!card || reduceMotion()) return;
+      card.classList.remove('bump-left', 'bump-right');
+      void card.offsetWidth;
+      card.classList.add('bump-' + side);
+    }
+    let sw = null;
+    view.ontouchstart = e => {
+      if (e.touches.length !== 1 || modalOpen) { sw = null; return; }
+      const el = e.target;
+      // yatay kayan tablo/kod alanlarında ve gezinme listesinde swipe yok
+      if (el.closest && el.closest('.table-wrap, pre, .q-meta, .navigator, .solve-actions')) { sw = null; return; }
+      const p = e.touches[0];
+      sw = { x: p.clientX, y: p.clientY, t: Date.now(), card: view.querySelector('.qcard'), moved: false, horiz: null };
+    };
+    view.ontouchmove = e => {
+      if (!sw || !sw.card) return;
+      const p = e.touches[0];
+      const dx = p.clientX - sw.x, dy = p.clientY - sw.y;
+      if (sw.horiz === null && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) sw.horiz = Math.abs(dx) > Math.abs(dy) * 1.3;
+      if (!sw.horiz) return;
+      sw.moved = true;
+      if (!reduceMotion()) {
+        const edge = (dx > 0 && t.index === 0) || (dx < 0 && t.index === qids.length - 1);
+        sw.card.style.transition = 'none';
+        sw.card.style.transform = 'translateX(' + (edge ? dx * 0.25 : dx * 0.6) + 'px)';
+        sw.card.style.opacity = String(Math.max(0.55, 1 - Math.abs(dx) / 700));
+      }
+    };
+    view.ontouchend = view.ontouchcancel = e => {
+      if (!sw) return;
+      const s0 = sw; sw = null;
+      if (s0.card) { s0.card.style.transition = ''; s0.card.style.transform = ''; s0.card.style.opacity = ''; }
+      if (!s0.horiz || e.type === 'touchcancel') return;
+      const sel = window.getSelection && String(window.getSelection());
+      if (sel) return;
+      const p = e.changedTouches[0];
+      const dx = p.clientX - s0.x, dy = p.clientY - s0.y;
+      const fast = Date.now() - s0.t < 300 && Math.abs(dx) > 35;
+      if ((Math.abs(dx) > 70 || fast) && Math.abs(dx) > Math.abs(dy) * 1.3) {
+        go(t.index + (dx < 0 ? 1 : -1), true);
       }
     };
 
@@ -1539,8 +1629,10 @@
     keyHandler = null;
     view.onclick = null;
     view.onchange = null;
+    view.ontouchstart = view.ontouchmove = view.ontouchend = view.ontouchcancel = null;
     const h = location.hash || '#/';
     const [path, query] = h.split('?');
+    document.body.classList.toggle('solving', /^#\/test\/[\w-]+$/.test(path));
     if (path !== lastPath) window.scrollTo(0, 0);
     lastPath = path;
     let m;

@@ -3,7 +3,7 @@
  * Strateji: önce ağ (her açılışta güncel sürüm), ağ yoksa önbellek.
  * Soru verileri burada değil, IndexedDB'de saklanır.
  */
-const CACHE = 'kbb-soru-bankasi-v2';
+const CACHE = 'kbb-soru-bankasi-v3';
 const SHELL = [
   './',
   './index.html',

@@ -15,6 +15,8 @@ Site, telefona veya bilgisayara uygulama gibi kurulabilir. Kurulduktan sonra ken
   iOS'ta ana ekrandaki uygulama Safari'den **ayrı depolama** kullanır. Safari'de yüklediğiniz sorular uygulamada görünmez. Soruları doğrudan uygulamanın içinden yükleyin ya da Safari'den **Yedek İndir**, uygulamada **Yedeği Yükle** ile taşıyın.
 - **Bilgisayar (Chrome/Edge):** Adres çubuğundaki yükle simgesine ya da sayfadaki **Uygulamayı Yükle** düğmesine tıklayın.
 
+Üstteki **Uygulamayı Yükle** (telefonda **Yükle**) düğmesi her tarayıcıda görünür. Tarayıcı otomatik kurulumu destekliyorsa kurulum penceresi açılır. Desteklemiyorsa o cihaza uygun adımlar gösterilir: iPhone, Android, Samsung İnternet, masaüstü ve Instagram/WhatsApp gibi uygulama içi tarayıcılar için ayrı talimat vardır.
+
 Kurulum için site `https` üzerinden (ör. GitHub Pages) ya da `localhost` üzerinden açılmalıdır. Uygulama internet varken her açılışta en güncel sürümü alır. İnternet yoksa önbellekteki sürümle çalışır.
 
 ## Dosyalar
@@ -73,6 +75,8 @@ Diğer ücretsiz seçenekler: Netlify Drop (klasörü sürükleyip bırakın) ve
    - **Kaynağı silme:** Filtrelerdeki kaynak adının yanındaki çöp kutusu simgesi, o kaynaktaki soruları siler. Başka bir kaynakta da bulunan sorular silinmez, yalnızca bu kaynak bilgisi kaldırılır.
    - Silme onayında **Yedek indir ve sil** seçeneği önce yedek alır.
 4. **İstatistikler:** Konu ve kaynak bazında doğru oranlarını gösterir.
+
+Telefonda soru çözerken üst bar ve alt menü gizlenir, böylece soru ve şıklar ekrana sığar. Sorular arasında **sola/sağa kaydırarak** geçebilirsiniz.
 
 Klavye kısayolları (bilgisayarda): A–E veya 1–5 şık seçer, Enter kontrol eder ya da sonraki soruya geçer, ← → sorular arasında gezinir, F favoriye ekler.
 

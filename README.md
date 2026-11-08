@@ -69,6 +69,9 @@ Diğer ücretsiz seçenekler: Netlify Drop (klasörü sürükleyip bırakın) ve
 1. **Dosya Yükle:** Bir ya da birden fazla `.md` dosyasını sürükleyin veya **Dosya Seç** ile seçin (telefonda da çalışır). Önizlemede “25 soru bulundu · 22 yeni · 2 tekrar · 1 hatalı” gibi bir özet görürsünüz. Hatalı soruların neden atlandığı yazılır. **İçe Aktar** ile kaydedin.
 2. **Test Çöz:** Soru havuzunu (tüm sorular, yanlışlarım, favorilerim, hiç çözmediklerim), konu, kaynak, zorluk ve soru tipini seçin. Soru sayısını (10/20/30/50/tümü/özel) belirleyip başlatın. Testin soru sırası sabittir; sayfayı yenileseniz de değişmez.
 3. **Soru Bankası:** Arama yapabilir, konu ağacında filtreleyebilir, soruları düzenleyip silebilirsiniz. Konu adının yanındaki kalem simgesiyle konuyu yeniden adlandırabilirsiniz. Var olan bir konunun adını yazarsanız iki konu birleşir.
+   - **Toplu silme:** **Seç** düğmesiyle seçim moduna geçip soruları tek tek işaretleyebilir ya da **Filtrelenen tümünü seç** ile filtre/aramaya uyan bütün soruları seçip **Seçilenleri Sil** diyebilirsiniz.
+   - **Kaynağı silme:** Filtrelerdeki kaynak adının yanındaki çöp kutusu simgesi, o kaynaktaki soruları siler. Başka bir kaynakta da bulunan sorular silinmez, yalnızca bu kaynak bilgisi kaldırılır.
+   - Silme onayında **Yedek indir ve sil** seçeneği önce yedek alır.
 4. **İstatistikler:** Konu ve kaynak bazında doğru oranlarını gösterir.
 
 Klavye kısayolları (bilgisayarda): A–E veya 1–5 şık seçer, Enter kontrol eder ya da sonraki soruya geçer, ← → sorular arasında gezinir, F favoriye ekler.

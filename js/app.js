@@ -382,6 +382,7 @@
         '<div class="src-row"><label class="check"><input type="checkbox" name="sources" value="' + esc(n) + '"' + (crit.sources.includes(n) ? ' checked' : '') + '>' +
         '<span>' + esc(sourceLabel(n)) + '</span></label><span class="count">' + fmtNum(c) + '</span>' +
         (opts.manage && n ? '<button type="button" class="mini-btn" data-rename-source="' + esc(n) + '" title="Kaynak adını değiştir" aria-label="' + esc(n) + ' kaynağını yeniden adlandır">' + ICON.edit + '</button>' : '') +
+        (opts.manage ? '<button type="button" class="mini-btn del" data-delete-source="' + esc(n) + '" title="Bu kaynaktaki soruları sil" aria-label="' + esc(sourceLabel(n)) + ' kaynağındaki soruları sil">' + ICON.trash + '</button>' : '') +
         '</div>').join('') + '</div></div>';
     if (diffs.length > 1 || (diffs.length === 1 && diffs[0][0])) {
       html += '<div class="fsec"><h3>Zorluk</h3>' + chipGroup('diffs', diffs.map(([d, c]) => ({ value: d, label: d ? d + '/5' : 'Belirtilmemiş', count: c })), crit.diffs, true) + '</div>';
@@ -906,6 +907,8 @@
     C.topics = (C.topics || []).filter(k => Store.sorted().some(q => Store.inTopic(q.topic, k)));
     let shown = BANK_PAGE;
     const expanded = new Set();
+    let selecting = false;
+    const selected = new Set();
 
     view.innerHTML =
       '<div class="page-head"><div><h1>Soru Bankası</h1><p class="muted">' + fmtNum(S.questions.size) + ' soru · konuya, kaynağa göre filtrele, ara, düzenle.</p></div></div>' +
@@ -914,7 +917,13 @@
       '<div class="filters" data-filters>' + filterSections(C, { manage: true }) + '</div></details></aside>' +
       '<section class="bank-main">' +
       '<div class="search-row"><input type="search" class="input search" placeholder="Soru, şık, açıklama, konu veya kaynakta ara…" aria-label="Arama" value="' + esc(C.search) + '"></div>' +
-      '<div class="bank-bar"><span class="result-count" aria-live="polite"></span><button type="button" class="btn primary sm" data-test-from>' + ICON.play + 'Bu sorularla test</button></div>' +
+      '<div class="bank-bar"><span class="result-count" aria-live="polite"></span><div class="row wrap">' +
+      '<button type="button" class="btn ghost sm" data-select-mode>' + ICON.check + 'Seç</button>' +
+      '<button type="button" class="btn primary sm" data-test-from>' + ICON.play + 'Bu sorularla test</button></div></div>' +
+      '<div class="select-bar" hidden><label class="check"><input type="checkbox" data-select-all><span class="sel-all-label"></span></label>' +
+      '<span class="sel-count" aria-live="polite"></span>' +
+      '<div class="row wrap"><button type="button" class="btn danger sm" data-delete-selected>' + ICON.trash + 'Seçilenleri Sil</button>' +
+      '<button type="button" class="btn ghost sm" data-select-done>Bitti</button></div></div>' +
       '<ul class="qlist"></ul><div class="more-wrap"></div></section></div>';
 
     const ft = view.querySelector('.filters-toggle');
@@ -923,7 +932,22 @@
     const moreEl = view.querySelector('.more-wrap');
     const countEl = view.querySelector('.result-count');
     const fcount = view.querySelector('.fcount');
+    const selBar = view.querySelector('.select-bar');
+    const selAll = view.querySelector('[data-select-all]');
     let results = [];
+
+    function syncSelectBar() {
+      selBar.hidden = !selecting;
+      view.querySelector('.bank-bar').hidden = selecting;
+      if (!selecting) return;
+      const n = selected.size;
+      view.querySelector('.sel-all-label').textContent = 'Filtrelenen tümünü seç (' + fmtNum(results.length) + ')';
+      view.querySelector('.sel-count').textContent = fmtNum(n) + ' seçili';
+      selAll.checked = n > 0 && n === results.length;
+      selAll.indeterminate = n > 0 && n < results.length;
+      selAll.disabled = !results.length;
+      view.querySelector('[data-delete-selected]').disabled = !n;
+    }
 
     function itemHTML(q) {
       const p = S.progress.get(q.id);
@@ -951,8 +975,10 @@
           '<button type="button" class="btn danger-soft sm" data-delete="' + q.id + '">' + ICON.trash + 'Sil</button>' +
           '</div></div>';
       }
-      return '<li class="qitem' + (open ? ' open' : '') + '" data-id="' + q.id + '">' +
+      const sel = selected.has(q.id);
+      return '<li class="qitem' + (open ? ' open' : '') + (sel ? ' selected' : '') + '" data-id="' + q.id + '">' +
         '<div class="qi-head">' +
+        (selecting ? '<label class="qi-check" title="Seç"><input type="checkbox" data-pick="' + q.id + '"' + (sel ? ' checked' : '') + ' aria-label="Soruyu seç"></label>' : '') +
         '<button type="button" class="qi-toggle" data-toggle="' + q.id + '" aria-expanded="' + open + '">' +
         '<span class="qi-topic">' + esc(q.topic) + '</span>' +
         '<span class="qi-stem">' + esc(MD.plain(q.stem, 220)) + '</span>' +
@@ -966,6 +992,11 @@
 
     function renderList() {
       results = Store.filter(C);
+      if (selected.size) {
+        const vis = new Set(results.map(q => q.id));
+        for (const id of [...selected]) if (!vis.has(id)) selected.delete(id);
+      }
+      syncSelectBar();
       const active = (C.pool !== 'all' ? 1 : 0) + C.topics.length + C.sources.length + C.diffs.length + C.types.length;
       fcount.textContent = active ? '(' + active + ')' : '';
       countEl.innerHTML = '<strong>' + fmtNum(results.length) + '</strong> soru';
@@ -996,8 +1027,40 @@
       timer = setTimeout(() => { C.search = e.target.value; changed(); }, 180);
     });
 
+    view.onchange = e => {
+      const t = e.target;
+      if (t.matches('[data-pick]')) {
+        if (t.checked) selected.add(t.dataset.pick); else selected.delete(t.dataset.pick);
+        t.closest('.qitem').classList.toggle('selected', t.checked);
+        syncSelectBar();
+      } else if (t.matches('[data-select-all]')) {
+        if (t.checked) for (const q of results) selected.add(q.id); else selected.clear();
+        renderList();
+      }
+    };
+
+    const setSelecting = on => { selecting = on; selected.clear(); renderList(); };
+
     view.onclick = async e => {
       let b;
+      if (e.target.closest('[data-select-mode]')) { setSelecting(true); return; }
+      if (e.target.closest('[data-select-done]')) { setSelecting(false); return; }
+      if (e.target.closest('[data-delete-selected]')) {
+        const ids = [...selected];
+        if (!ids.length) return;
+        const go = await confirmDelete(fmtNum(ids.length) + ' soru silinsin mi?',
+          'Seçilen ' + fmtNum(ids.length) + ' soru, favori kayıtları ve çözüm geçmişiyle birlikte kalıcı olarak silinecek.');
+        if (!go) return;
+        const n = await Store.deleteQuestions(ids);
+        toast(fmtNum(n) + ' soru silindi', 'ok');
+        viewBank();
+        return;
+      }
+      if ((b = e.target.closest('[data-delete-source]'))) {
+        e.preventDefault();
+        if (await deleteSourceDialog(b.dataset.deleteSource)) viewBank();
+        return;
+      }
       if ((b = e.target.closest('[data-toggle]'))) {
         const id = b.dataset.toggle;
         if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
@@ -1095,6 +1158,38 @@
       }
     });
     return result;
+  }
+
+  // Silme onayı: isteğe bağlı olarak önce yedek indirir
+  async function confirmDelete(title, text) {
+    const v = await modal({
+      title,
+      body: '<p>' + esc(text) + '</p><p class="muted small">Bu işlem geri alınamaz. Emin değilseniz önce yedek indirin; gerekirse Dosya Yükle → Yedeği Yükle ile geri getirebilirsiniz.</p>',
+      actions: [
+        { label: 'Vazgeç', value: null, kind: 'ghost' },
+        { label: 'Yedek indir ve sil', value: 'backup', kind: 'danger-soft' },
+        { label: 'Sil', value: 'delete', kind: 'danger' }
+      ]
+    });
+    if (v === 'backup') { downloadBackup(); return true; }
+    return v === 'delete';
+  }
+
+  async function deleteSourceDialog(name) {
+    const plan = Store.sourcePlan(name);
+    const total = plan.only.length + plan.shared.length;
+    if (!total) return false;
+    const label = sourceLabel(name);
+    let text = '“' + label + '” kaynağındaki ' + fmtNum(total) + ' soru için: ';
+    const parts = [];
+    if (plan.only.length) parts.push(fmtNum(plan.only.length) + ' soru (yalnızca bu kaynakta) favori ve çözüm geçmişiyle birlikte silinecek');
+    if (plan.shared.length) parts.push(fmtNum(plan.shared.length) + ' soru başka kaynaklarda da bulunduğu için silinmeyecek, yalnızca bu kaynak bilgisi kaldırılacak');
+    text += parts.join('; ') + '.';
+    const go = await confirmDelete('Kaynak silinsin mi?', text);
+    if (!go) return false;
+    const r = await Store.deleteSource(name);
+    toast(fmtNum(r.deleted) + ' soru silindi' + (r.detached ? ', ' + fmtNum(r.detached) + ' sorudan kaynak kaldırıldı' : ''), 'ok');
+    return true;
   }
 
   async function editQuestion(id) {
@@ -1443,6 +1538,7 @@
   function route() {
     keyHandler = null;
     view.onclick = null;
+    view.onchange = null;
     const h = location.hash || '#/';
     const [path, query] = h.split('?');
     if (path !== lastPath) window.scrollTo(0, 0);

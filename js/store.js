@@ -338,21 +338,58 @@
     return n;
   }
 
-  async function deleteQuestion(id) {
-    const attemptIds = S.attempts.filter(a => a.qid === id).map(a => a.id);
+  // Bir veya birden çok soruyu favori ve çözüm geçmişiyle birlikte sil
+  async function deleteQuestions(ids) {
+    const del = new Set(ids.filter(id => S.questions.has(id)));
+    if (!del.size) return 0;
+    const attemptIds = S.attempts.filter(a => del.has(a.qid)).map(a => a.id);
     await DB.run(['questions', 'favorites', 'attempts'], 'readwrite', s => {
-      s.questions.delete(id);
-      s.favorites.delete(id);
+      for (const id of del) { s.questions.delete(id); s.favorites.delete(id); }
       for (const a of attemptIds) s.attempts.delete(a);
     });
-    S.questions.delete(id);
-    S.favorites.delete(id);
+    for (const id of del) { S.questions.delete(id); S.favorites.delete(id); }
     const drop = new Set(attemptIds);
     S.attempts = S.attempts.filter(a => !drop.has(a.id));
     for (const a of drop) S.attemptIds.delete(a);
     invalidate();
     recompute();
     await touch();
+    return del.size;
+  }
+
+  const deleteQuestion = id => deleteQuestions([id]);
+
+  // Bir kaynağı silerken: yalnızca bu kaynakta olan sorular silinir,
+  // başka kaynakta da bulunan sorulardan sadece bu kaynak çıkarılır.
+  // name === '' → kaynağı belirtilmemiş sorular.
+  function sourcePlan(name) {
+    const only = [], shared = [];
+    for (const q of S.questions.values()) {
+      const srcs = q.sources || [];
+      if (name === '') { if (!srcs.length) only.push(q.id); continue; }
+      if (!srcs.some(s => s.name === name)) continue;
+      if (srcs.every(s => s.name === name)) only.push(q.id); else shared.push(q.id);
+    }
+    return { only, shared };
+  }
+
+  async function deleteSource(name) {
+    const plan = sourcePlan(name);
+    const now = Date.now();
+    const out = plan.shared.map(id => {
+      const n = clone(S.questions.get(id));
+      n.sources = n.sources.filter(s => s.name !== name);
+      n.updatedAt = now;
+      return n;
+    });
+    if (out.length) {
+      await DB.putMany('questions', out);
+      for (const q of out) S.questions.set(q.id, q);
+      invalidate();
+    }
+    const deleted = await deleteQuestions(plan.only);
+    if (out.length && !deleted) await touch();
+    return { deleted, detached: out.length };
   }
 
   // Konuyu yeniden adlandır / başka konuyla birleştir (alt konular da taşınır)
@@ -569,7 +606,7 @@
   root.Store = {
     S, LETTERS, uid, load, setMeta, sorted, fold, filter, emptyCrit, poolCounts, buildTree, inTopic,
     sourceNames, sourceCounts, diffCounts, typeCounts, classify, commitImport, recordAnswer, toggleFavorite,
-    createTest, saveTest, deleteTest, testList, testStats, updateQuestion, deleteQuestion, renameTopic,
+    createTest, saveTest, deleteTest, testList, testStats, updateQuestion, deleteQuestion, deleteQuestions, sourcePlan, deleteSource, renameTopic,
     renameSource, buildBackup, parseBackup, importBackup, clearAll
   };
 })(window);
